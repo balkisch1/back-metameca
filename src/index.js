@@ -5,7 +5,7 @@ import express from "express";
 import cors from "cors";
 
 import { connectDB } from "./db.js";
-
+import aiRoutes  from "./routes/ai.js";
 import authRoutes from "./routes/auth.js";
 import productRoutes from "./routes/products.js";
 import clientRoutes from "./routes/clients.js";
@@ -29,6 +29,7 @@ app.get("/api/health", (_, res) =>
 );
 
 app.use("/api/auth", authRoutes);
+app.use("/api/ai", aiRoutes); // 👈 AJOUT
 
 // debug middleware (OK)
 app.use("/api/products", (req, res, next) => {

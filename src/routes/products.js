@@ -1,6 +1,6 @@
   import { Router } from "express";
   import Product from "../models/Product.js";
-  import { authenticate } from "../middleware/auth.js";
+  import { authenticateAdmin  } from "../middleware/auth.js";
   import multer from "multer";
   import path from "path";
   import fs from "fs";
@@ -52,7 +52,7 @@ const uploadCsv = multer({ storage: multer.memoryStorage() });
   });
 
   // GET /api/products/categories/list
-  router.get("/categories/list", authenticate, async (req, res) => {
+  router.get("/categories/list", authenticateAdmin, async (req, res) => {
     try {
       const cats = await Product.distinct("category");
       res.json(cats);
@@ -140,7 +140,7 @@ router.post("/", async (req, res) => {
   // PUT /api/products/:id
   router.put(
     "/:id",
-    authenticate,
+    authenticateAdmin ,
     upload.array("images", 10),
     async (req, res) => {
       try {
@@ -171,7 +171,7 @@ router.post("/", async (req, res) => {
   );
 
   // DELETE /api/products/:id
-  router.delete("/:id", authenticate, async (req, res) => {
+  router.delete("/:id", authenticateAdmin, async (req, res) => {
     try {
       const product = await Product.findByIdAndDelete(req.params.id);
       if (!product) return res.status(404).json({ error: "Produit introuvable" });

@@ -2,7 +2,7 @@ import { Router } from "express";
 import Reservation from "../models/Reservation.js";
 import Client from "../models/Client.js";
 import Product from "../models/Product.js";
-import { authenticate } from "../middleware/auth.js";
+import { authenticateAdmin, authenticateToken } from "../middleware/auth.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -39,7 +39,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-router.post("/:id/files", authenticate, upload.array("files", 10), async (req, res) => {
+router.post("/:id/files", authenticateAdmin , upload.array("files", 10), async (req, res) => {
   try {
     const r = await Reservation.findById(req.params.id);
     if (!r) return res.status(404).json({ error: "Réservation introuvable" });
@@ -62,7 +62,7 @@ router.post("/:id/files", authenticate, upload.array("files", 10), async (req, r
 });
 
 // DELETE /api/reservations/:id/files/:filename
-router.delete("/:id/files/:filename", authenticate, async (req, res) => {
+router.delete("/:id/files/:filename", authenticateAdmin , async (req, res) => {
   try {
     const r = await Reservation.findById(req.params.id);
     if (!r) return res.status(404).json({ error: "Réservation introuvable" });
@@ -92,7 +92,7 @@ router.delete("/:id/files/:filename", authenticate, async (req, res) => {
 
 
 // GET /api/reservations/stats/summary  ← must be before /:id
-router.get("/stats/summary", authenticate, async (req, res) => {
+router.get("/stats/summary", authenticateAdmin , async (req, res) => {
   try {
     const [total, pending, confirmed, completed, cancelled, revenueData] = await Promise.all([
       Reservation.countDocuments(),
@@ -114,9 +114,18 @@ router.get("/stats/summary", authenticate, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+router.get("/mine", authenticateToken, async (req, res) => {
+  try {
+    const reservations = await populate(
+      Reservation.find({ clientId: req.user.id }).sort({ createdAt: -1 })
+    );
+    res.json(reservations.map(formatRes));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}); 
 // GET /api/reservations
-router.get("/", authenticate, async (req, res) => {
+router.get("/", authenticateAdmin , async (req, res) => {
   try {
     const { status, clientId, productId } = req.query;
     const filter = {};
@@ -132,7 +141,7 @@ router.get("/", authenticate, async (req, res) => {
 });
 
 // GET /api/reservations/:id
-router.get("/:id", authenticate, async (req, res) => {
+router.get("/:id", authenticateAdmin , async (req, res) => {
   try {
     const r = await populate(Reservation.findById(req.params.id));
     if (!r) return res.status(404).json({ error: "Réservation introuvable" });
@@ -143,7 +152,7 @@ router.get("/:id", authenticate, async (req, res) => {
 });
 
 // POST /api/reservations  (admin)
-router.post("/", authenticate, async (req, res) => {
+router.post("/", authenticateAdmin , async (req, res) => {
   try {
     const { clientId, productId, quantity = 1, notes, scheduledDate } = req.body;
     if (!clientId || !productId)
@@ -173,7 +182,7 @@ router.post("/", authenticate, async (req, res) => {
   }
 });
 
-// POST /api/reservations/public  (site public, sans auth)
+// POST /api/reservations/public  (site public, san uth)
 router.post("/public", async (req, res) => {
   try {
     const { clientName, clientEmail, clientPhone, productId, quantity = 1, notes, scheduledDate } = req.body;
@@ -210,7 +219,7 @@ router.post("/public", async (req, res) => {
 });
 
 // PUT /api/reservations/:id/status
-router.put("/:id/status", authenticate, async (req, res) => {
+router.put("/:id/status", authenticateAdmin , async (req, res) => {
   try {
     const { status } = req.body;
     const valid = ["pending", "confirmed", "cancelled", "completed"];
@@ -232,7 +241,7 @@ router.put("/:id/status", authenticate, async (req, res) => {
 });
 
 // DELETE /api/reservations/:id
-router.delete("/:id", authenticate, async (req, res) => {
+router.delete("/:id", authenticateAdmin , async (req, res) => {
   try {
     const r = await Reservation.findByIdAndDelete(req.params.id);
     if (!r) return res.status(404).json({ error: "Réservation introuvable" });
@@ -241,5 +250,7 @@ router.delete("/:id", authenticate, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// GET /api/reservations/mine  ← client sees only their own
+
 
 export default router;
