@@ -29,7 +29,7 @@ app.get("/api/health", (_, res) =>
 );
 
 app.use("/api/auth", authRoutes);
-app.use("/api/ai", aiRoutes); // 👈 AJOUT
+app.use("/api/ai", aiRoutes); 
 
 // debug middleware (OK)
 app.use("/api/products", (req, res, next) => {
